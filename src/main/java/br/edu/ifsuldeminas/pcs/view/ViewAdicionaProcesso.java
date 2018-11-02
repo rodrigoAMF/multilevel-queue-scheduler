@@ -27,6 +27,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 
 public class ViewAdicionaProcesso extends JFrame {
 
@@ -61,7 +62,7 @@ public class ViewAdicionaProcesso extends JFrame {
 				txtNomeProcesso.setText("P" + String.valueOf(escalonador.getNumeroDeProcessos()+1));
 			}
 		});
-		escalonador = new Escalonador();
+		escalonador = Escalonador.getInstance();
 		
 		setTitle("Adicionar processos ao Simulador");
 		setFont(new Font("Segoe UI Light", Font.PLAIN, 14));
@@ -108,12 +109,14 @@ public class ViewAdicionaProcesso extends JFrame {
 		cbxTipoDoProcesso.setBounds(12, 204, 300, 40);
 		contentPane.add(cbxTipoDoProcesso);
 		
-		final JTextArea txtaProcessosAdicionados = new JTextArea();
-		txtaProcessosAdicionados.setRows(20);
-		txtaProcessosAdicionados.setTabSize(4);
-		txtaProcessosAdicionados.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
-		txtaProcessosAdicionados.setBounds(353, 40, 200, 400);
-		contentPane.add(txtaProcessosAdicionados);
+		JScrollPane scrollPaneTxtaProcessosAdicionados = new JScrollPane();
+		scrollPaneTxtaProcessosAdicionados.setBounds(339, 40, 200, 400);
+		contentPane.add(scrollPaneTxtaProcessosAdicionados);
+		
+		final JTextArea txtaProcessosAdicionado = new JTextArea();
+		scrollPaneTxtaProcessosAdicionados.setViewportView(txtaProcessosAdicionado);
+		txtaProcessosAdicionado.setTabSize(4);
+		txtaProcessosAdicionado.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
 		
 		JButton btnAdicionarProcesso = new JButton("Adicionar Processo");
 		btnAdicionarProcesso.addActionListener(new ActionListener() {
@@ -136,7 +139,7 @@ public class ViewAdicionaProcesso extends JFrame {
 				
 				txtNomeProcesso.setText("P" + String.valueOf(escalonador.getNumeroDeProcessos()+1));
 				
-				txtaProcessosAdicionados.setText(escalonador.mostraProcessos());
+				txtaProcessosAdicionado.setText(escalonador.mostraProcessos());
 			}
 		});
 		btnAdicionarProcesso.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
@@ -147,5 +150,18 @@ public class ViewAdicionaProcesso extends JFrame {
 		lblProcessoJaAdicionados.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
 		lblProcessoJaAdicionados.setBounds(353, 11, 200, 16);
 		contentPane.add(lblProcessoJaAdicionados);
+		
+		JButton btnIrParaSimulacao = new JButton("Ir para Simula\u00E7\u00E3o");
+		btnIrParaSimulacao.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				ViewSimulador simulador = new ViewSimulador();
+				simulador.setVisible(true);
+				setVisible(false); // Seta invisível
+				dispose(); // Destrói a JFrame
+			}
+		});
+		btnIrParaSimulacao.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
+		btnIrParaSimulacao.setBounds(139, 331, 173, 40);
+		contentPane.add(btnIrParaSimulacao);
 	}
 }

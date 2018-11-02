@@ -6,10 +6,12 @@ import java.util.Queue;
 public class Fila {
 	private Queue<Processo> fila;
 	private final int quantum;
+	private int idFila;
 
 	
-	public Fila(int quantum) {
+	public Fila(int quantum, int idFila) {
 		this.fila = new LinkedList<Processo>();
+		this.idFila = idFila;
 		this.quantum = quantum;
 	}
 	
@@ -40,4 +42,9 @@ public class Fila {
 	public int getQuantum() {
 		return this.quantum;
 	}
+	
+	public int getIdFila() {
+		return this.idFila;
+	}
+	
 }

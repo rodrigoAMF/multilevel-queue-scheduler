@@ -1,8 +1,10 @@
 package br.edu.ifsuldeminas.pcs.model;
 
 import java.util.LinkedList;
+import java.util.Observable;
 
-public class Escalonador {
+public class Escalonador extends Observable {
+	private static final Escalonador instance = new Escalonador();
 	private Fila filaA;
 	private Fila filaB;
 	private Fila filaC;
@@ -11,7 +13,7 @@ public class Escalonador {
 	private Fila filaF;
 	private Fila filaG;
 	private Fila filaH;
-	private Fila filaBloqueado;
+	private Fila filaBloqueados;
 	
 	private Fila filaAtual;
 	private Fila proximaFila;
@@ -21,20 +23,29 @@ public class Escalonador {
 	private int numeroDeProcessos;
 
 	public Escalonador() {
-		filaA = new Fila(2);
-		filaB = new Fila(4);
-		filaC = new Fila(8);
-		filaD = new Fila(16);
-		filaE = new Fila(32);
-		filaF = new Fila(64);
-		filaG = new Fila(128);
-		filaH = new Fila(256);
-		filaBloqueado = new Fila(-1);
+		filaA = new Fila(2, 1);
+		filaB = new Fila(4, 2);
+		filaC = new Fila(8, 3);
+		filaD = new Fila(16, 4);
+		filaE = new Fila(32, 5);
+		filaF = new Fila(64, 6);
+		filaG = new Fila(128, 7);
+		filaH = new Fila(256, 8);
+		filaBloqueados = new Fila(-1, -1);
 		tempoTotalExecucao = 0;
 		trocasDeContexto = 0;
 		numeroDeProcessos = 0;
 		filaAtual = filaA;
 		proximaFila = filaB;
+	}
+	
+	public static Escalonador getInstance() {
+        return instance;
+    }
+	
+	public void inicializaSimulacao() {
+		setChanged();
+        notifyObservers();
 	}
 
 	// Retorna 0 se ainda tiver algum processo em alguma fila
@@ -47,7 +58,7 @@ public class Escalonador {
 			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-filaAtual.getQuantum());
 			proximaFila.adiciona(trocado);
 		}else if(trocado.getTipo() == Constantes.IO_BOUND) {
-			filaBloqueado.adiciona(trocado);
+			filaBloqueados.adiciona(trocado);
 			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-1);
 			tempoTotalExecucao += 1 + 1;
 		}
@@ -55,10 +66,10 @@ public class Escalonador {
 		
 		if(filaAtual.estaVazia()) {
 			// Verifica se tem algo na fila de bloqueado e adiciona na próxima fila
-			if(!filaBloqueado.estaVazia()) {
+			if(!filaBloqueados.estaVazia()) {
 				// 
-				while(!filaBloqueado.estaVazia()) {
-					proximaFila.adiciona(filaBloqueado.remove());
+				while(!filaBloqueados.estaVazia()) {
+					proximaFila.adiciona(filaBloqueados.remove());
 				}
 			}
 			
@@ -86,7 +97,7 @@ public class Escalonador {
 		}
 		
 		if(filaA.estaVazia() && filaB.estaVazia() && filaC.estaVazia() && filaD.estaVazia() 
-				&& filaE.estaVazia() && filaF.estaVazia() && filaG.estaVazia() && filaH.estaVazia() && filaBloqueado.estaVazia()) {
+				&& filaE.estaVazia() && filaF.estaVazia() && filaG.estaVazia() && filaH.estaVazia() && filaBloqueados.estaVazia()) {
 			return 1;
 		}else {
 			return 0;
