@@ -21,6 +21,12 @@ public class Escalonador extends Observable {
 	private int tempoTotalExecucao;		// Tempo total para executar todos os processos no escalonador
 	private int trocasDeContexto;
 	private int numeroDeProcessos;
+	
+	private int tempoRestanteProcesso;
+	private int tempoTotalProcesso;
+	private String status;
+	/*private int numeroProcessosFilaAtual;
+	private int numeroTotalProcessosFilaAtual;*/
 
 	public Escalonador() {
 		filaA = new Fila(2, 1);
@@ -46,28 +52,66 @@ public class Escalonador extends Observable {
 	public void inicializaSimulacao() {
 		setChanged();
         notifyObservers();
+		while(trocaProcesso() != 1) {
+			setChanged();
+	        notifyObservers();
+		}
+		
 	}
 
 	// Retorna 0 se ainda tiver algum processo em alguma fila
 	// Retorna 1 se não tiver mais processos em nenhuma fila
-	public int trocaProcesso(int fila) {
+	public int trocaProcesso() {
 		// Troca de fila
 		Processo trocado = filaAtual.remove();
+		tempoRestanteProcesso = tempoTotalProcesso = filaAtual.getQuantum();
+		
 		if(trocado.getTipo() == Constantes.CPU_BOUND) {
+			status = "Processando " + trocado.getNome() + " CPU Bound";
+			setChanged();
+	        notifyObservers();
+			// Atualiza progressBar com tempo restante na CPU
+			for(int i = 0; i < filaAtual.getQuantum(); i++) {
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				tempoRestanteProcesso--;
+				setChanged();
+		        notifyObservers();
+			}
+			
+	        // Atualiza tempo total de execução, tempo restante na CPU do processo e troca de fila caso não tenha terminado de executar
 			tempoTotalExecucao += filaAtual.getQuantum() + 1;
 			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-filaAtual.getQuantum());
-			proximaFila.adiciona(trocado);
+			if(trocado.getTempoRestanteCPU() > 0) {
+				proximaFila.adiciona(trocado);
+			}
 		}else if(trocado.getTipo() == Constantes.IO_BOUND) {
-			filaBloqueados.adiciona(trocado);
+			status = "Processando " + trocado.getNome() + " IO Bound";
+			setChanged();
+	        notifyObservers();
+	        tempoRestanteProcesso = tempoTotalProcesso = 1;
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			setChanged();
+	        notifyObservers();
+	        
 			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-1);
 			tempoTotalExecucao += 1 + 1;
+			if(trocado.getTempoRestanteCPU() > 0) {
+				filaBloqueados.adiciona(trocado);
+			}
 		}
 		trocasDeContexto++;
 		
 		if(filaAtual.estaVazia()) {
 			// Verifica se tem algo na fila de bloqueado e adiciona na próxima fila
 			if(!filaBloqueados.estaVazia()) {
-				// 
 				while(!filaBloqueados.estaVazia()) {
 					proximaFila.adiciona(filaBloqueados.remove());
 				}
@@ -98,6 +142,7 @@ public class Escalonador extends Observable {
 		
 		if(filaA.estaVazia() && filaB.estaVazia() && filaC.estaVazia() && filaD.estaVazia() 
 				&& filaE.estaVazia() && filaF.estaVazia() && filaG.estaVazia() && filaH.estaVazia() && filaBloqueados.estaVazia()) {
+			status = "Finalizado!";
 			return 1;
 		}else {
 			return 0;
@@ -120,12 +165,44 @@ public class Escalonador extends Observable {
 		return filaAtual;
 	}
 	
+	public Fila getProximaFila() {
+		return proximaFila;
+	}
+	
+	public Fila getFilaBloqueados() {
+		return filaBloqueados;
+	}
+	
 	public int getNumeroDeProcessos() {
 		return numeroDeProcessos;
 	}
 	
 	public void incrementaNumeroDeProcessos() {
 		numeroDeProcessos++;
+	}
+	
+	// Tempo que o escalonador está executando simulação
+	public int getTempoTotalExecucao() {
+		return tempoTotalExecucao;
+	}
+	
+	// Número de trocas de contexto
+	public int getTrocasDeContexto() {
+		return trocasDeContexto;
+	}
+	
+	// Número de quantuns que o processo atual na CPU ainda pode executar
+	public int getTempoRestanteProcesso() {
+		return tempoRestanteProcesso;
+	}
+	
+	// Total de quantuns que o processo atual na CPU pode executar
+	public int getTempoTotalProcesso() {
+		return tempoTotalProcesso;
+	}
+	
+	public String getStatus() {
+		return status;
 	}
 	
 }

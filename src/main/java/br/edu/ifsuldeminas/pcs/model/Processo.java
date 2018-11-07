@@ -14,7 +14,7 @@ public class Processo {
 		this.id = id;
 	}
 	public String getNome() {
-		return nome;
+		return String.valueOf(nome) + "("  +  String.valueOf(tempoRestanteCPU) + "/" + String.valueOf(tempoCPU) + ")";
 	}
 	public void setNome(String nome) {
 		this.nome = nome;
@@ -38,7 +38,6 @@ public class Processo {
 	public void setTipo(int tipo) {
 		this.tipo = tipo;
 	}
-	
 	
 	
 	
