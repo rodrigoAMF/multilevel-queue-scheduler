@@ -18,6 +18,7 @@ import javax.swing.JTextArea;
 import javax.swing.JProgressBar;
 import javax.swing.JButton;
 import java.awt.event.ActionListener;
+import java.text.DecimalFormat;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.concurrent.ExecutorService;
@@ -54,6 +55,7 @@ public class ViewSimulador extends JFrame implements Observer {
 	JLabel lblTrocasDeContexto;
 	JLabel tempoDeExecução;
 	JLabel lblTempoTotalExecucao;
+	JLabel lblEficiencia;
 	
 	public void registerObserver(Observable processor) {
         this.processor = processor;
@@ -67,7 +69,7 @@ public class ViewSimulador extends JFrame implements Observer {
 		this.escalonador = Escalonador.getInstance();
 		registerObserver(escalonador);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 1324, 924);
+		setBounds(100, 100, 1324, 963);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -238,12 +240,12 @@ public class ViewSimulador extends JFrame implements Observer {
 		
 		tempoDeExecução = new JLabel("Tempo de Execu\u00E7\u00E3o: 0s");
 		tempoDeExecução.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
-		tempoDeExecução.setBounds(611, 747, 227, 30);
+		tempoDeExecução.setBounds(706, 747, 227, 30);
 		contentPane.add(tempoDeExecução);
 		
 		lblTempoTotalExecucao = new JLabel("Tempo Total de Execu\u00E7\u00E3o: -");
 		lblTempoTotalExecucao.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
-		lblTempoTotalExecucao.setBounds(850, 747, 296, 30);
+		lblTempoTotalExecucao.setBounds(372, 790, 296, 30);
 		contentPane.add(lblTempoTotalExecucao);
 		
 		JButton btnIniciarSimulacao = new JButton("Iniciar Simula\u00E7\u00E3o");
@@ -256,17 +258,18 @@ public class ViewSimulador extends JFrame implements Observer {
 			}
 		});
 		btnIniciarSimulacao.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
-		btnIniciarSimulacao.setBounds(427, 800, 200, 50);
+		btnIniciarSimulacao.setBounds(427, 853, 200, 50);
 		contentPane.add(btnIniciarSimulacao);
 		
-		JButton btnPausarSimulação = new JButton("Pausar Simula\u00E7\u00E3o");
-		btnPausarSimulação.addActionListener(new ActionListener() {
+		JButton btnVoltar = new JButton("Voltar");
+		btnVoltar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
+				
 			}
 		});
-		btnPausarSimulação.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
-		btnPausarSimulação.setBounds(675, 800, 200, 50);
-		contentPane.add(btnPausarSimulação);
+		btnVoltar.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
+		btnVoltar.setBounds(675, 853, 200, 50);
+		contentPane.add(btnVoltar);
 		
 		JLabel lblStatus = new JLabel("Status: ");
 		lblStatus.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
@@ -278,6 +281,11 @@ public class ViewSimulador extends JFrame implements Observer {
 		lblStatusAtual.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
 		lblStatusAtual.setBounds(84, 747, 350, 30);
 		contentPane.add(lblStatusAtual);
+		
+		lblEficiencia = new JLabel("Efici\u00EAncia: ");
+		lblEficiencia.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
+		lblEficiencia.setBounds(706, 790, 240, 30);
+		contentPane.add(lblEficiencia);
 	}
 
 	public void update(Observable o, Object arg) {
@@ -333,55 +341,101 @@ public class ViewSimulador extends JFrame implements Observer {
                 		pbAtual = pbFilaH;
                 	}else if(e.getFilaAtual().getIdFila() == -1) {
                 		txtaAtual = txtaFilaBloqueados;
+                		if(e.getProximaFila().getIdFila() == 1) {
+                			txtaProximo = txtaFilaA;
+                		}else if(e.getProximaFila().getIdFila() == 2) {
+                			txtaProximo = txtaFilaB;
+                		}else if(e.getProximaFila().getIdFila() == 3) {
+                			txtaProximo = txtaFilaC;
+                		}else if(e.getProximaFila().getIdFila() == 4) {
+                			txtaProximo = txtaFilaD;
+                		}else if(e.getProximaFila().getIdFila() == 5) {
+                			txtaProximo = txtaFilaE;
+                		}else if(e.getProximaFila().getIdFila() == 6) {
+                			txtaProximo = txtaFilaF;
+                		}else if(e.getProximaFila().getIdFila() == 7) {
+                			txtaProximo = txtaFilaG;
+                		}else if(e.getProximaFila().getIdFila() == 8) {
+                			txtaProximo = txtaFilaH;
+                		}
+                		
+                		pbAnterior = pbFilaA;
+                		pbAtual = pbFilaB;
+                		
                 	}
                 	
-                	txtaAtual.setText("");
-                	txtaProximo.setText("");
+                	txtaFilaA.setText("");
+                	txtaFilaB.setText("");
+                	txtaFilaC.setText("");
+                	txtaFilaD.setText("");
+                	txtaFilaE.setText("");
+                	txtaFilaF.setText("");
+                	txtaFilaG.setText("");
+                	txtaFilaH.setText("");
                 	txtaFilaBloqueados.setText("");
                 	
-            		// Adiciona no txtArea todos os processos da filaA
-            		for(Processo p: e.getFilaAtual().getProcessos()) {
-            			if(!txtaAtual.getText().equals("")) {
-            				txtaAtual.setText(txtaAtual.getText() + "<" + p.getNome());
+                	if(e.getFilaAtual() != e.getFilaBloqueados()) {
+                		if(!e.isFoiTrocadoDeFila()) {
+                			txtaAtual.setText(e.getProcessoAtual().getNome());
+                		}
+                			
+                		// Adiciona no txtArea todos os processos da filaAtual
+                		for(Processo p: e.getFilaAtual().getProcessos()) {
+                			if(!txtaAtual.getText().equals("")) {
+                				txtaAtual.setText(txtaAtual.getText() + "<" + p.getNome());
+                			}else {
+                				txtaAtual.setText(txtaAtual.getText() + p.getNome());
+                			}
+                    	}
+                	}
+                	
+                	// Adiciona no txtArea todos os processos da próxima fila
+            		for(Processo p: e.getProximaFila().getProcessos()) {
+            			if(!txtaProximo.getText().equals("")) {
+            				txtaProximo.setText(txtaProximo.getText() + "<" + p.getNome());
             			}else {
-            				txtaAtual.setText(txtaAtual.getText() + p.getNome());
+            				txtaProximo.setText(txtaProximo.getText() + p.getNome());
             			}
                 	}
             		
-            		// Verifica se a fila atual não é a fila de bloqueados, se for não tem necessidade de atualizar duas vezes
+        			// Adiciona no txtArea todos os processos da fila bloqueados
+            		for(Processo p: e.getFilaBloqueados().getProcessos()) {
+            			if(!txtaFilaBloqueados.getText().equals("")) {
+            				txtaFilaBloqueados.setText(txtaFilaBloqueados.getText() + "<" + p.getNome());
+            			}else {
+            				txtaFilaBloqueados.setText(txtaFilaBloqueados.getText() + p.getNome());
+            			}
+                	}
+            		
+                	// Atualiza a progressBar da filaAtual
             		if(e.getFilaAtual() != e.getFilaBloqueados()) {
-	            		// Adiciona no txtArea todos os processos da próxima fila
-	            		for(Processo p: e.getProximaFila().getProcessos()) {
-	            			if(!txtaProximo.getText().equals("")) {
-	            				txtaProximo.setText(txtaProximo.getText() + "<" + p.getNome());
-	            			}else {
-	            				txtaProximo.setText(txtaProximo.getText() + p.getNome());
-	            			}
-	                	}
-            			// Adiciona no txtArea todos os processos da fila bloqueados
-                		for(Processo p: e.getFilaBloqueados().getProcessos()) {
-                			if(!txtaFilaBloqueados.getText().equals("")) {
-                				txtaFilaBloqueados.setText(txtaFilaBloqueados.getText() + "<" + p.getNome());
-                			}else {
-                				txtaFilaBloqueados.setText(txtaFilaBloqueados.getText() + p.getNome());
-                			}
-                    	}
-                		
-                    	// Atualiza a progressBar da filaAtual
-                    	pbAtual.setMaximum(e.getTempoTotalProcesso());
+            			pbAtual.setMaximum(e.getTempoTotalProcesso());
                     	pbAtual.setValue(e.getTempoRestanteProcesso());
                     	pbAnterior.setValue(0);
             		}
+                	
+            		
+    
             		// Atualiza label Status
             		lblStatusAtual.setText(e.getStatus());
             		if(lblStatusAtual.getText() == "Finalizado!") {
             			lblTempoTotalExecucao.setText("Tempo Total de Execução: " + String.valueOf(e.getTempoTotalExecucao()));
-            			pbAtual.setValue(0);
+            			//pbAtual.setValue(0);
+            			lblStatusAtual.setForeground(Color.green);
             		}
+            		
                 	// Atualiza tempo de execução e trocas de contexto
             		lblTrocasDeContexto.setText("Trocas de Contexto: " + String.valueOf(e.getTrocasDeContexto()));
             		tempoDeExecução.setText("Tempo de Execução: " + String.valueOf(e.getTempoTotalExecucao()));
-            		//
+            		double eficiencia = (double)e.getTrocasDeContexto()/(double)e.getTempoTotalExecucao();
+            		if(e.getTempoTotalExecucao() == e.getTrocasDeContexto() && e.getTrocasDeContexto() == 0) {
+            			eficiencia = 0;
+            		}
+            		eficiencia*=100;
+            		DecimalFormat fmt = new DecimalFormat();
+            		fmt.setMaximumFractionDigits(2);
+
+            		lblEficiencia.setText("Eficiência: " + fmt.format(eficiencia) + "%");
                 }
             }
         });

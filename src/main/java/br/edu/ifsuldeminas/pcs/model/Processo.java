@@ -5,6 +5,8 @@ public class Processo {
 	private String nome;
 	private int tempoCPU;
 	private int tempoRestanteCPU;
+	private int tempoRestanteBloqueado;
+	private int proximaFila;
 	private int tipo;
 	
 	public int getId() {
@@ -14,7 +16,14 @@ public class Processo {
 		this.id = id;
 	}
 	public String getNome() {
-		return String.valueOf(nome) + "("  +  String.valueOf(tempoRestanteCPU) + "/" + String.valueOf(tempoCPU) + ")";
+		if(tipo == 0) {
+			return String.valueOf(nome) + "("  +  String.valueOf(tempoRestanteCPU) + "/" + String.valueOf(tempoCPU) + ")";
+		}else {
+			return String.valueOf(nome) + "("  +  String.valueOf(tempoRestanteCPU) + "/" + String.valueOf(tempoCPU) + ")(" + String.valueOf(tempoRestanteBloqueado) + ")";
+		}
+	}
+	public String getApenasNome() {
+		return nome;
 	}
 	public void setNome(String nome) {
 		this.nome = nome;
@@ -39,6 +48,20 @@ public class Processo {
 		this.tipo = tipo;
 	}
 	
+	public int getTempoRestanteBloqueado() {
+		return tempoRestanteBloqueado;
+	}
 	
+	public void setTempoRestanteBloqueado(int tempoRestanteBloqueado) {
+		this.tempoRestanteBloqueado = tempoRestanteBloqueado;
+	}
+	
+	public int getProximaFila() {
+		return proximaFila;
+	}
+	
+	public void setProximaFila(int fila) {
+		this.proximaFila = fila;
+	}
 	
 }

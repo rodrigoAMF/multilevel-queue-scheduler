@@ -17,6 +17,7 @@ public class Escalonador extends Observable {
 	
 	private Fila filaAtual;
 	private Fila proximaFila;
+	private Fila proximaFilaDoProcessoDoTopoDaFilaDeBloqueados;
 	
 	private int tempoTotalExecucao;		// Tempo total para executar todos os processos no escalonador
 	private int trocasDeContexto;
@@ -25,6 +26,10 @@ public class Escalonador extends Observable {
 	private int tempoRestanteProcesso;
 	private int tempoTotalProcesso;
 	private String status;
+	private int quantumsQueOProcessoIraExecutar;
+	private boolean foiTrocadoDeFila;
+	
+	private Processo processoAtual;
 	/*private int numeroProcessosFilaAtual;
 	private int numeroTotalProcessosFilaAtual;*/
 
@@ -59,95 +64,217 @@ public class Escalonador extends Observable {
 		
 	}
 
-	// Retorna 0 se ainda tiver algum processo em alguma fila
-	// Retorna 1 se não tiver mais processos em nenhuma fila
+	/* Retorna 0 se ainda tiver algum processo em alguma fila
+	   Retorna 1 se não tiver mais processos em nenhuma fila  */
 	public int trocaProcesso() {
-		// Troca de fila
-		Processo trocado = filaAtual.remove();
-		tempoRestanteProcesso = tempoTotalProcesso = filaAtual.getQuantum();
-		
-		if(trocado.getTipo() == Constantes.CPU_BOUND) {
-			status = "Processando " + trocado.getNome() + " CPU Bound";
-			setChanged();
-	        notifyObservers();
-			// Atualiza progressBar com tempo restante na CPU
-			for(int i = 0; i < filaAtual.getQuantum(); i++) {
+		processoAtual = null;
+		foiTrocadoDeFila = false;
+		if(filaAtual != filaBloqueados) {
+			processoAtual = filaAtual.remove();
+			if(processoAtual.getTipo() == Constantes.CPU_BOUND) {
+				if(processoAtual.getTempoRestanteCPU() < filaAtual.getQuantum()) {
+		        	quantumsQueOProcessoIraExecutar = processoAtual.getTempoRestanteCPU();
+		        }else {
+		        	quantumsQueOProcessoIraExecutar = filaAtual.getQuantum();
+		        }
+			}else if(processoAtual.getTipo() == Constantes.IO_BOUND) {
+				quantumsQueOProcessoIraExecutar = 1;
+			}
+			// Usado para atualizar progressBar da interface
+			tempoTotalProcesso = tempoRestanteProcesso = quantumsQueOProcessoIraExecutar;
+			while(tempoRestanteProcesso > 0) {
+				status = "Processando " + processoAtual.getApenasNome() + "(" + String.valueOf(tempoRestanteProcesso) + "/" 
+						+ String.valueOf(tempoTotalProcesso) +  ") " + ((processoAtual.getTipo() == 0) ? "CPU Bound": "IO Bound");
+				setChanged();
+		        notifyObservers();
 				try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 				tempoRestanteProcesso--;
-				setChanged();
-		        notifyObservers();
 			}
 			
-	        // Atualiza tempo total de execução, tempo restante na CPU do processo e troca de fila caso não tenha terminado de executar
-			tempoTotalExecucao += filaAtual.getQuantum() + 1;
-			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-filaAtual.getQuantum());
-			if(trocado.getTempoRestanteCPU() > 0) {
-				proximaFila.adiciona(trocado);
+			processoAtual.setTempoRestanteCPU(processoAtual.getTempoRestanteCPU()-quantumsQueOProcessoIraExecutar);
+			tempoTotalExecucao += quantumsQueOProcessoIraExecutar + 1;
+			trocasDeContexto++;
+			if(processoAtual.getTempoRestanteCPU() > 0) {
+				processoAtual.setProximaFila(processoAtual.getProximaFila()+1);
+				if(processoAtual.getProximaFila() > 8) {
+					processoAtual.setProximaFila(1);
+				}
+				
+				if(processoAtual.getTipo() == Constantes.CPU_BOUND) {
+					proximaFila.adiciona(processoAtual);
+				}else if(processoAtual.getTipo() == Constantes.IO_BOUND){
+					processoAtual.setTempoRestanteBloqueado(5);
+					filaBloqueados.adiciona(processoAtual);
+				}
 			}
-		}else if(trocado.getTipo() == Constantes.IO_BOUND) {
-			status = "Processando " + trocado.getNome() + " IO Bound";
+			foiTrocadoDeFila = true;
+			
+			// Diminui tempo dos processos na fila de bloqueado
+			for(Processo p: filaBloqueados.getProcessos()) {
+				// Não diminui tempo na fila do processo que acabou de ser adicionado
+				if(p == processoAtual) continue;
+				p.setTempoRestanteBloqueado(p.getTempoRestanteBloqueado()-quantumsQueOProcessoIraExecutar-1);
+			}
+			
+			// Adiciona à próxima fila caso tenha acabo tempo na fila de bloqueado
+			while(!filaBloqueados.estaVazia() && filaBloqueados.getTopo().getTempoRestanteBloqueado() <= 0) {
+				Processo p = filaBloqueados.remove();
+				p.setTempoRestanteBloqueado(0);
+				adicionaBloqueadoProximaFila(p);
+			}
+			// Atualiza interface e aguarda 1 seg (Simular troca de contexto)
 			setChanged();
 	        notifyObservers();
-	        tempoRestanteProcesso = tempoTotalProcesso = 1;
+	        status = "Efetuando troca de contexto...";
 			try {
 				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			
+		}else {
+			// Diminui tempo dos processos na fila de bloqueado
+			for(Processo p: filaBloqueados.getProcessos()) {
+				p.setTempoRestanteBloqueado(p.getTempoRestanteBloqueado()-1);
+				tempoTotalExecucao+=1;
+			}
+			// Adiciona à próxima fila caso tenha acabo tempo na fila de bloqueado
+			while(!filaBloqueados.estaVazia() && filaBloqueados.getTopo().getTempoRestanteBloqueado() <= 0) {
+				Processo p = filaBloqueados.remove();
+				p.setTempoRestanteBloqueado(0);
+				adicionaBloqueadoProximaFila(p);
+			}
+			// Atualiza interface e aguarda 1 seg (Simular troca de contexto)
 			setChanged();
 	        notifyObservers();
-	        
-			trocado.setTempoRestanteCPU(trocado.getTempoRestanteCPU()-1);
-			tempoTotalExecucao += 1 + 1;
-			if(trocado.getTempoRestanteCPU() > 0) {
-				filaBloqueados.adiciona(trocado);
+	        status = "Processando fila de bloqueados...";
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
-		trocasDeContexto++;
 		
-		if(filaAtual.estaVazia()) {
-			// Verifica se tem algo na fila de bloqueado e adiciona na próxima fila
-			if(!filaBloqueados.estaVazia()) {
-				while(!filaBloqueados.estaVazia()) {
-					proximaFila.adiciona(filaBloqueados.remove());
-				}
-			}
-			
-			// Troca a fila atual
+		if(filaAtual.estaVazia() && !proximaFila.estaVazia()) {
+			trocaFilaAtualEProximaFila();
+		}else if(filasEstaoVazias() && !filaBloqueados.estaVazia() && filaAtual != filaBloqueados) {
+			filaAtual = filaBloqueados;
+			AlteraProximaFilaDoProcessoDoTopoDaFilaDeBloqueados(filaBloqueados.getTopo());
+			proximaFila = proximaFilaDoProcessoDoTopoDaFilaDeBloqueados;
+		}else if(filaAtual.estaVazia() && filaAtual == filaBloqueados) {
 			filaAtual = proximaFila;
-			
-			// Define a próxima fila
-			if(filaAtual == filaA) {
-				proximaFila = filaB;
-			}else if(filaAtual == filaB) {
-				proximaFila = filaC;
-			}else if(filaAtual == filaC) {
-				proximaFila = filaD;
-			}else if(filaAtual == filaD) {
-				proximaFila = filaE;
-			}else if(filaAtual == filaE) {
-				proximaFila = filaF;
-			}else if(filaAtual == filaF) {
-				proximaFila = filaG;
-			}else if(filaAtual == filaG) {
-				proximaFila = filaH;
-			}else if(filaAtual == filaH) {
-				proximaFila = filaA;
-			}
+			encontraProximaFila();
 		}
-		
-		if(filaA.estaVazia() && filaB.estaVazia() && filaC.estaVazia() && filaD.estaVazia() 
-				&& filaE.estaVazia() && filaF.estaVazia() && filaG.estaVazia() && filaH.estaVazia() && filaBloqueados.estaVazia()) {
+		if(filaBloqueados.estaVazia() && filasEstaoVazias()) {
 			status = "Finalizado!";
-			return 1;
+			setChanged();
+	        notifyObservers();
+			return 1; 
 		}else {
 			return 0;
 		}
 	}
+	
+	public void encontraProximaFila() {
+		if(filaAtual == filaA) {
+			proximaFila = filaB;
+		}else if(filaAtual == filaB) {
+			proximaFila = filaC;
+		}else if(filaAtual == filaC) {
+			proximaFila = filaD;
+		}else if(filaAtual == filaD) {
+			proximaFila = filaE;
+		}else if(filaAtual == filaE) {
+			proximaFila = filaF;
+		}else if(filaAtual == filaF) {
+			proximaFila = filaG;
+		}else if(filaAtual == filaG) {
+			proximaFila = filaH;
+		}else if(filaAtual == filaH) {
+			proximaFila = filaA;
+		}
+	}
+	
+	public void AlteraProximaFilaDoProcessoDoTopoDaFilaDeBloqueados(Processo p) {
+		if(p.getProximaFila() == 1) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaA;
+		}else if(p.getProximaFila() == 2) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaB;
+		}else if(p.getProximaFila() == 3) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaC;
+		}else if(p.getProximaFila() == 4) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaD;
+		}else if(p.getProximaFila() == 5) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaE;
+		}else if(p.getProximaFila() == 6) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaF;
+		}else if(p.getProximaFila() == 7) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaG;
+		}else if(p.getProximaFila() == 8) {
+			proximaFilaDoProcessoDoTopoDaFilaDeBloqueados = filaH;
+		}
+	}
+	
+	public boolean filasEstaoVazias() {
+		if(filaA.estaVazia() && filaB.estaVazia() && filaC.estaVazia() && filaD.estaVazia() && filaE.estaVazia() && filaF.estaVazia() && filaG.estaVazia() && filaH.estaVazia())
+			return true;
+		else
+			return false;
+	}
+	
+	public void trocaFilaAtualEProximaFila() {
+		// Troca a fila atual
+		filaAtual = proximaFila;
+		
+		// Define a próxima fila
+		if(filaAtual == filaA) {
+			proximaFila = filaB;
+		}else if(filaAtual == filaB) {
+			proximaFila = filaC;
+		}else if(filaAtual == filaC) {
+			proximaFila = filaD;
+		}else if(filaAtual == filaD) {
+			proximaFila = filaE;
+		}else if(filaAtual == filaE) {
+			proximaFila = filaF;
+		}else if(filaAtual == filaF) {
+			proximaFila = filaG;
+		}else if(filaAtual == filaG) {
+			proximaFila = filaH;
+		}else if(filaAtual == filaH) {
+			proximaFila = filaA;
+		}
+	}
+	
+	public void adicionaBloqueadoProximaFila(Processo p) {
+		if(p.getProximaFila() == 1) {
+			filaA.adiciona(p);
+		}else if(p.getProximaFila() == 2) {
+			filaB.adiciona(p);
+		}else if(p.getProximaFila() == 3) {
+			filaC.adiciona(p);
+		}else if(p.getProximaFila() == 4) {
+			filaD.adiciona(p);
+		}else if(p.getProximaFila() == 5) {
+			filaE.adiciona(p);
+		}else if(p.getProximaFila() == 6) {
+			filaF.adiciona(p);
+		}else if(p.getProximaFila() == 7) {
+			filaG.adiciona(p);
+		}else if(p.getProximaFila() == 8) {
+			filaH.adiciona(p);
+		}
+	}
+	
+	/*public int proximaFilaIO(Fila filaAtual) {
+		if(p.getProximaFila() == ) {
+			
+		}
+	}*/
 	
 	public String mostraProcessos() {
 		String saida = "";
@@ -203,6 +330,14 @@ public class Escalonador extends Observable {
 	
 	public String getStatus() {
 		return status;
+	}
+	
+	public Processo getProcessoAtual() {
+		return processoAtual;
+	}
+	
+	public boolean isFoiTrocadoDeFila() {
+		return foiTrocadoDeFila;
 	}
 	
 }

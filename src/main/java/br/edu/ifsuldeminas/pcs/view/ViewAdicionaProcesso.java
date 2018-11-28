@@ -134,6 +134,7 @@ public class ViewAdicionaProcesso extends JFrame {
 				novo.setNome(nomeDoProcesso);
 				novo.setTempoCPU(tempoDeCPU);
 				novo.setTipo(tipoProcesso);
+				novo.setProximaFila(1);
 				escalonador.getFilaAtual().adiciona(novo);
 				escalonador.incrementaNumeroDeProcessos();
 				
