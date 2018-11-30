@@ -258,18 +258,8 @@ public class ViewSimulador extends JFrame implements Observer {
 			}
 		});
 		btnIniciarSimulacao.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
-		btnIniciarSimulacao.setBounds(427, 853, 200, 50);
+		btnIniciarSimulacao.setBounds(550, 853, 200, 50);
 		contentPane.add(btnIniciarSimulacao);
-		
-		JButton btnVoltar = new JButton("Voltar");
-		btnVoltar.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-			}
-		});
-		btnVoltar.setFont(new Font("Segoe UI Light", Font.PLAIN, 16));
-		btnVoltar.setBounds(675, 853, 200, 50);
-		contentPane.add(btnVoltar);
 		
 		JLabel lblStatus = new JLabel("Status: ");
 		lblStatus.setFont(new Font("Segoe UI Light", Font.PLAIN, 18));
