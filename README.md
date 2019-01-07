@@ -1,4 +1,4 @@
-# Simulador de escalonador de Múltiplas Filas com Realimentação
+# Simulador de Escalonador de múltiplas filas com realimentação
 
 Este projeto implementa um escalonador de Múltiplas Filas com Realimentação, utlizando 8 filas de processos e 1 fila de bloqueados. 
 
